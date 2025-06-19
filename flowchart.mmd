@@ -1,0 +1,28 @@
+flowchart TD
+    %% Main components with minimal technical details
+    Designer([Designer])
+    
+    FigmaPlugin[Figma Plugin<br><i>Captures design elements</i>]
+    
+    Backend[Backend Server<br><i>Processes design data</i>]
+    
+    AI[AI Service<br><i>Analyzes design quality</i>]
+    
+    %% Simple data flow with clear descriptions
+    Designer --> FigmaPlugin
+    FigmaPlugin --> Backend
+    Backend --> AI
+    AI --> Backend
+    Backend --> FigmaPlugin
+    FigmaPlugin --> Designer
+    
+    %% Clear visual styling with distinct colors
+    classDef human fill:#f5f5f5!important,stroke:#333!important,stroke-width:1px!important,color:black!important
+    classDef frontend fill:#2196F3!important,color:white!important,stroke:#1565C0!important,stroke-width:2px!important
+    classDef backend fill:#4CAF50!important,color:white!important,stroke:#2E7D32!important,stroke-width:2px!important
+    classDef ai fill:#9C27B0!important,color:white!important,stroke:#6A1B9A!important,stroke-width:2px!important
+    
+    class Designer human
+    class FigmaPlugin frontend
+    class Backend backend
+    class AI ai

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es6", // Output modern JavaScript (Figma environment supports it)
+    "lib": ["es2020", "dom"], // Includes ES2020 features (like Object.fromEntries) and DOM types (for console)
+    "module": "esnext", // Or "commonjs" depending on your module system preference
+    "moduleResolution": "node",
+    "jsx": "react", // If you use JSX for UI, otherwise remove
+    "strict": true, // Enable all strict type-checking options
+    "noImplicitAny": true, // Raise error on expressions and declarations with an implied 'any' type.
+    "skipLibCheck": true, // Skip type checking of declaration files.
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true, // Enables emit interoperability between CommonJS and ES Modules
+    "resolveJsonModule": true,
+    "isolatedModules": true, // Ensure modules are self-contained
+    "outDir": "dist", // Or your preferred output directory
+    "types": ["@figma/plugin-typings"] // Crucial for Figma types
+  },
+  "include": ["src/**/*.ts"] // Or wherever your plugin source code (e.g., code.ts) is
+}

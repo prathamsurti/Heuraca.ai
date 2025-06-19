@@ -1,0 +1,27 @@
+# Node
+*.log
+*.log.*
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/myenv/
+myenv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Build directories
+out/
+dist/
+code.js
+
+# Environment variables
+.env
+

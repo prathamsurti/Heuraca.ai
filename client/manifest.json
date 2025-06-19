@@ -1,0 +1,21 @@
+{
+  "name": "Heuraca.ai",
+  "id": "1501200310094783489",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
+  "editorType": [
+    "figma"
+  ],
+  "ui": "test.html",
+  "networkAccess": {
+    "allowedDomains": [
+      "*"
+    ],
+    "reasoning": "Accessing any domain for development and testing of element inspection data"
+  }
+}
+
+

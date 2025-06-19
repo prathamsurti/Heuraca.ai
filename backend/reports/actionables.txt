@@ -1,0 +1,24 @@
+**# ACTIONABLES:**
+
+**## Filter Buttons**
+- Change horizontal spacing between "Department" and "Tonality" from 46px to 40px to standardize spacing. (Improvement: Visual balance, UI/UX principle)
+- Remove redundant Group layers within filter buttons to simplify the design structure. (Improvement: Streamlined design, UI/UX principle)
+- Create a "Filter Button" component with customizable text and icon properties. (Improvement: Design consistency, UI/UX principle)
+- Define text styles for filter labels distinct from body text. (Improvement: Visual hierarchy, UI/UX principle)
+- Ensure a contrast ratio of at least 4.5:1 between text and background colors for all text elements. (Improvement: WCAG 2.1 AA compliance)
+
+**## Text Elements**
+- Define a minimum font size of 16px for all body text elements. (Improvement: Readability, WCAG 2.1 AA compliance)
+- All the 'Tonality', 'Sources' and 'Department' and the tonality and sources labels under each news article should be different. (Improvement: Readability, WCAG 2.1 AA compliance)
+
+**## Keyboard Navigation**
+- Implement visible focus states for all interactive elements. (Improvement: Keyboard accessibility, WCAG 2.1 AA compliance)
+- Verify that all interactive elements are reachable and operable using keyboard navigation. (Improvement: Keyboard accessibility, WCAG 2.1 AA compliance)
+
+**## Screen Reader Compatibility**
+- Restructure news article snippets to provide a logical reading order for screen readers. (Improvement: Screen reader accessibility, WCAG 2.1 AA compliance)
+
+**## Overall Design**
+- Conduct a thorough accessibility review. (Improvement: WCAG 2.1 AA compliance)
+
+**UI Design Score: 65/100**

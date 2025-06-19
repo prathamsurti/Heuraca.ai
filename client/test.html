@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Figma Element Inspector</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 12px;
+      max-width: 100%;
+      overflow-x: hidden;
+      color: #333;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 18px;
+    }
+
+    /* Button styles */
+    .button-container {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      padding: 10px 16px;
+      background-color: #f5f5f5;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #e5e5e5;
+    }
+
+    #audit-button {
+      background-color: #4CAF50;
+      color: white;
+      border-color: #43A047;
+      font-weight: bold;
+    }
+
+    #audit-button:hover {
+      background-color: #43A047;
+    }
+
+    #cancel {
+      background-color: #f44336;
+      color: white;
+      border-color: #e53935;
+    }
+
+    #cancel:hover {
+      background-color: #e53935;
+    }
+
+    /* Status indicator */
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-dot.idle {
+      background-color: #9e9e9e;
+    }
+
+    .status-dot.loading {
+      background-color: #2196F3;
+      animation: pulse 1.5s infinite;
+    }
+
+    .status-dot.success {
+      background-color: #4CAF50;
+    }
+
+    .status-dot.error {
+      background-color: #f44336;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    /* Results area */
+    .results-area {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 16px;
+      background-color: white;
+    }
+
+    /* Message styling */
+    .error-message {
+      color: #d32f2f;
+      padding: 12px;
+      background-color: #ffebee;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+
+    .loading-message {
+      padding: 12px;
+      background-color: #e3f2fd;
+      border-radius: 4px;
+      color: #0d47a1;
+      margin-bottom: 12px;
+    }
+
+    /* Actionable items styling */
+    .actionable-checkbox {
+      margin-right: 8px;
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+    }
+
+    .actionable-item {
+      padding: 12px;
+      margin-bottom: 12px;
+      border-left: 4px solid #4CAF50;
+      background-color: #f9f9f9;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .actionable-item strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #2e7d32;
+    }
+
+    /* Element summary styling */
+    .element-summary {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .element-summary h4 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .element-summary ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Figma Element Inspector</h2>
+
+  <div class="button-container">
+    <button id="audit-button">Audit</button>
+    <button id="cancel">Cancel</button>
+  </div>
+
+  <div class="status-indicator">
+    <div class="status-dot idle" id="status-dot"></div>
+    <span id="status-text">Ready to audit</span>
+  </div>
+
+  <div class="results-area" id="results-area">
+    <div id="results-content">No results yet. Click "Audit" to analyze selected elements.</div>
+  </div>
+
+  <!-- Log container (hidden by default) -->
+  <div id="log-container" style="display: none; margin-top: 16px; border: 1px solid #ddd; border-radius: 6px; padding: 16px; background-color: #f9f9f9; max-height: 200px; overflow-y: auto;">
+    <h4 style="margin-top: 0; margin-bottom: 8px; font-size: 14px; color: #555;">Log Messages</h4>
+    <div id="log-content" style="font-family: monospace; font-size: 12px;"></div>
+  </div>
+
+  <script>
+    // Logging utility for UI
+    const Logger = {
+      // Log levels
+      LOG_LEVELS: {
+        DEBUG: 0,
+        INFO: 1,
+        WARN: 2,
+        ERROR: 3
+      },
+
+      // Current log level
+      currentLevel: 1, // INFO by default
+
+      // Whether to show logs in UI
+      showInUI: false,
+
+      // Max log entries to keep
+      maxLogEntries: 100,
+
+      // Log entries array
+      entries: [],
+
+      // Format timestamp
+      getTimestamp: function() {
+        const now = new Date();
+        return now.toISOString().replace('T', ' ').substr(0, 19);
+      },
+
+      // Toggle UI log display
+      toggleUIDisplay: function() {
+        this.showInUI = !this.showInUI;
+        document.getElementById('log-container').style.display = this.showInUI ? 'block' : 'none';
+        this.info('Logger', `UI logs ${this.showInUI ? 'shown' : 'hidden'}`);
+      },
+
+      // Main log function
+      log: function(level, context, message, data) {
+        if (this.LOG_LEVELS[level] < this.LOG_LEVELS[this.currentLevel]) return;
+
+        let logMessage = `[${this.getTimestamp()}] [${level}]`;
+        if (context) logMessage += ` [${context}]`;
+        logMessage += `: ${message}`;
+
+        if (data !== undefined) {
+          try {
+            if (typeof data === 'object') {
+              logMessage += ` - ${JSON.stringify(data)}`;
+            } else {
+              logMessage += ` - ${data}`;
+            }
+          } catch (e) {
+            logMessage += ' - [Object cannot be stringified]';
+          }
+        }
+
+        // Store log entry
+        this.entries.push({
+          timestamp: new Date(),
+          level: level,
+          message: logMessage
+        });
+
+        // Trim log if needed
+        if (this.entries.length > this.maxLogEntries) {
+          this.entries = this.entries.slice(-this.maxLogEntries);
+        }
+
+        // Log to console based on level
+        switch(level) {
+          case 'DEBUG': console.debug(logMessage); break;
+          case 'INFO': console.info(logMessage); break;
+          case 'WARN': console.warn(logMessage); break;
+          case 'ERROR': console.error(logMessage); break;
+          default: console.log(logMessage);
+        }
+
+        // Update UI log if enabled
+        if (this.showInUI) {
+          this.updateUILog();
+        }
+
+        return logMessage;
+      },
+
+      // Update the UI log display
+      updateUILog: function() {
+        const logContent = document.getElementById('log-content');
+        if (!logContent) return;
+
+        // Clear current content
+        logContent.innerHTML = '';
+
+        // Add all log entries
+        this.entries.forEach(entry => {
+          const logLine = document.createElement('div');
+
+          // Style based on level
+          switch(entry.level) {
+            case 'ERROR':
+              logLine.style.color = '#d32f2f';
+              break;
+            case 'WARN':
+              logLine.style.color = '#ff9800';
+              break;
+            case 'INFO':
+              logLine.style.color = '#2196F3';
+              break;
+            case 'DEBUG':
+              logLine.style.color = '#9e9e9e';
+              break;
+          }
+
+          logLine.textContent = entry.message;
+          logContent.appendChild(logLine);
+        });
+
+        // Auto-scroll to bottom
+        logContent.scrollTop = logContent.scrollHeight;
+      },
+
+      // Convenience methods
+      debug: function(context, message, data) {
+        return this.log('DEBUG', context, message, data);
+      },
+
+      info: function(context, message, data) {
+        return this.log('INFO', context, message, data);
+      },
+
+      warn: function(context, message, data) {
+        return this.log('WARN', context, message, data);
+      },
+
+      error: function(context, message, data) {
+        return this.log('ERROR', context, message, data);
+      },
+
+      // Set log level
+      setLevel: function(level) {
+        if (this.LOG_LEVELS[level] !== undefined) {
+          this.currentLevel = level;
+          this.info('Logger', `Log level set to ${level}`);
+        }
+      }
+    };
+
+    // Initialize logger
+    Logger.info('UI', 'Figma Element Inspector UI initialized');
+    // Cancel button
+    document.getElementById("cancel").onclick = () => {
+      Logger.info('UI', 'Cancel button clicked');
+      parent.postMessage({ pluginMessage: { type: "cancel" } }, "*");
+    };
+
+    // Audit button - combines all functionality
+    document.getElementById("audit-button").onclick = () => {
+      Logger.info('UI', 'Audit button clicked');
+
+      // Update status indicator
+      updateStatus('loading', 'Inspecting elements...');
+      Logger.info('UI', 'Status updated: loading - Inspecting elements');
+
+      // Clear previous results
+      document.getElementById("results-content").innerHTML = `
+        <div class="loading-message">
+          <p>Waiting for element data...</p>
+        </div>
+      `;
+      Logger.debug('UI', 'Results area cleared and loading message displayed');
+
+      // Request element data from Figma
+      Logger.info('UI', 'Sending count-elements request to plugin');
+      parent.postMessage({ pluginMessage: { type: "count-elements" } }, "*");
+    };
+
+    // Add keyboard shortcut to toggle log display (Ctrl+Shift+L)
+    document.addEventListener('keydown', function(event) {
+      if (event.ctrlKey && event.shiftKey && event.key === 'L') {
+        Logger.toggleUIDisplay();
+      }
+    });
+
+    // Function to update status indicator
+    function updateStatus(state, message) {
+      Logger.debug('UI', `Updating status: ${state} - ${message}`);
+
+      const statusDot = document.getElementById('status-dot');
+      const statusText = document.getElementById('status-text');
+
+      // Remove all classes
+      statusDot.classList.remove('idle', 'loading', 'success', 'error');
+
+      // Add appropriate class
+      statusDot.classList.add(state);
+
+      // Update text
+      statusText.textContent = message;
+
+      // Log based on status type
+      if (state === 'error') {
+        Logger.error('Status', message);
+      } else if (state === 'success') {
+        Logger.info('Status', message);
+      } else {
+        Logger.info('Status', message);
+      }
+    }
+
+    // Function to display element summary
+    function displayElementSummary(elements) {
+      Logger.debug('UI', 'Generating element summary', { elementCount: elements ? elements.length : 0 });
+
+      if (!elements || elements.length === 0) {
+        Logger.debug('UI', 'No elements to summarize');
+        return '';
+      }
+
+      let html = `<div class="element-summary">
+        <h4>Selected Elements (${elements.length})</h4>
+        <ul>`;
+
+      // Create a simple list of element types
+      const elementTypes = {};
+      elements.forEach(element => {
+        if (!elementTypes[element.type]) {
+          elementTypes[element.type] = 0;
+        }
+        elementTypes[element.type]++;
+      });
+
+      Logger.debug('UI', 'Element types summary', elementTypes);
+
+      for (const type in elementTypes) {
+        html += `<li>${type}: ${elementTypes[type]}</li>`;
+      }
+
+      html += `</ul></div>`;
+      Logger.debug('UI', 'Element summary generated');
+      return html;
+    }
+
+    // Handle messages from the plugin
+    window.onmessage = (event) => {
+      const message = event.data.pluginMessage;
+      Logger.info('UI', `Received message from plugin: ${message.type}`);
+      Logger.debug('UI', 'Message details', message);
+
+      // Handle log messages from the plugin
+      if (message.type === 'log') {
+        Logger.log(message.level || 'INFO', 'Plugin', message.message, message.data);
+        return;
+      }
+
+      // Handle error messages
+      if (message.type === 'error') {
+        Logger.error('Plugin', message.message, message.details);
+        updateStatus('error', 'Plugin error: ' + message.message);
+        return;
+      }
+
+      if (message.type === 'element-data') {
+        const elements = message.elements;
+        Logger.info('UI', `Received element data with ${elements.length} elements`);
+
+        // Store data for API sending
+        window.elementData = elements;
+        Logger.debug('UI', 'Stored element data in window.elementData');
+
+        if (elements.length === 0) {
+          Logger.warn('UI', 'No elements selected');
+          updateStatus('error', 'No elements selected');
+          document.getElementById("results-content").innerHTML = `
+            <div class="error-message">
+              <p>No elements selected. Please select elements in Figma and click Audit.</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Update status
+        updateStatus('loading', 'Sending data for audit...');
+
+        // Show loading message with element summary
+        document.getElementById("results-content").innerHTML = `
+          <div class="loading-message">
+            <p>Processing ${elements.length} elements...</p>
+          </div>
+          ${displayElementSummary(elements)}
+        `;
+        Logger.debug('UI', 'Updated results content with loading message and element summary');
+
+        // First send data to audit-data endpoint
+        const auditUrl = 'http://127.0.0.1:8000/audit-data';
+        Logger.info('API', `Sending data to ${auditUrl}`);
+        Logger.debug('API', 'Request payload size', JSON.stringify(elements).length);
+
+        fetch(auditUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ elements: elements })
+        })
+        .then(response => {
+          Logger.info('API', `Received response from ${auditUrl}: ${response.status}`);
+          if (!response.ok) {
+            Logger.error('API', `HTTP error from ${auditUrl}`, { status: response.status });
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(result => {
+          Logger.info('API', 'Successfully processed audit data');
+          Logger.debug('API', 'Audit data result', result);
+
+          // After audit data is sent, get analysis
+          updateStatus('loading', 'Generating analysis...');
+          return getAnalysis(elements);
+        })
+        .then(() => {
+          // After analysis is complete, get actionables
+          updateStatus('loading', 'Generating actionables...');
+          return getActionables(elements);
+        })
+        .catch(error => {
+          Logger.error('API', 'Error in API workflow', { message: error.message, stack: error.stack });
+          updateStatus('error', 'Error: ' + error.message);
+          document.getElementById("results-content").innerHTML = `
+            <div class="error-message">
+              <p>Error: ${error.message}</p>
+            </div>
+            ${displayElementSummary(elements)}
+          `;
+        });
+      }
+    };
+
+    // Function to get analysis (returns a promise)
+    function getAnalysis(elements) {
+      const analysisUrl = 'http://127.0.0.1:8000/generate-recommendations';
+      Logger.info('API', `Getting analysis from ${analysisUrl}`);
+
+      document.getElementById("results-content").innerHTML = `
+        <div class="loading-message">
+          <p>Generating analysis recommendations...</p>
+        </div>
+        ${displayElementSummary(elements)}
+      `;
+      Logger.debug('UI', 'Updated results content with analysis loading message');
+
+      return fetch(analysisUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ elements: elements })
+      })
+      .then(response => {
+        Logger.info('API', `Received response from ${analysisUrl}: ${response.status}`);
+        if (!response.ok) {
+          Logger.error('API', `HTTP error from ${analysisUrl}`, { status: response.status });
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        Logger.info('API', 'Successfully received analysis data');
+        Logger.debug('API', 'Analysis data', data);
+        return data;
+      });
+    }
+
+    // Function to get actionables
+    function getActionables(elements) {
+      const actionablesUrl = 'http://127.0.0.1:8000/generate-actionables';
+      Logger.info('API', `Getting actionables from ${actionablesUrl}`);
+
+      document.getElementById("results-content").innerHTML = `
+        <div class="loading-message">
+          <p>Generating actionable items...</p>
+        </div>
+        ${displayElementSummary(elements)}
+      `;
+      Logger.debug('UI', 'Updated results content with actionables loading message');
+
+      return fetch(actionablesUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ elements: elements })
+      })
+      .then(response => {
+        Logger.info('API', `Received response from ${actionablesUrl}: ${response.status}`);
+        if (!response.ok) {
+          Logger.error('API', `HTTP error from ${actionablesUrl}`, { status: response.status });
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(result => {
+        Logger.info('API', 'Successfully received actionables data');
+        Logger.debug('API', 'Actionables data', result);
+
+        // Update results content with actionables
+        const html = formatActionables(result);
+        document.getElementById("results-content").innerHTML = html + displayElementSummary(elements);
+        Logger.debug('UI', 'Updated results content with formatted actionables');
+
+        // Update status to success
+        updateStatus('success', 'Audit complete');
+        Logger.info('UI', 'Audit workflow completed successfully');
+      });
+    }
+
+    // Helper function to format actionables
+    function formatActionables(result) {
+      Logger.debug('UI', 'Formatting actionables', result);
+
+      if (!result) {
+        Logger.warn('UI', 'No result data received for actionables');
+        return "<div class='error-message'>No data received</div>";
+      }
+
+      if (!result.actionables) {
+        Logger.warn('UI', 'No actionables found in result data');
+        return "<div class='error-message'>No actionable items found</div>";
+      }
+
+      // Format the actionables text
+      Logger.debug('UI', 'Formatting actionable items text');
+      return formatActionableItems(result.actionables);
+    }
+
+    // Function to format actionable items in a structured way
+    function formatActionableItems(text) {
+      Logger.debug('UI', 'Formatting actionable items from text', { textLength: text ? text.length : 0 });
+
+      if (!text) {
+        Logger.warn('UI', 'No text provided for actionable items');
+        return "<div class='error-message'>No actionable items found</div>";
+      }
+
+      // Split by lines and format as actionable items
+      const lines = text.split('\n');
+      Logger.debug('UI', `Splitting actionable text into ${lines.length} lines`);
+
+      let html = '';
+      let currentItem = '';
+      let itemCount = 0;
+
+      lines.forEach((line, index) => {
+        line = line.trim();
+        if (!line) return;
+
+        // Check if this is a new item (starts with number, bullet, etc.)
+        if (line.match(/^[\d\-\*\•]+\.?\s+/) || line.startsWith('#')) {
+          // If we have a current item, close it before starting a new one
+          if (currentItem) {
+            html += `<div class="actionable-item">${currentItem}</div>`;
+            itemCount++;
+            Logger.debug('UI', `Added actionable item #${itemCount}`);
+            currentItem = '';
+          }
+
+          // Clean up the line (remove leading numbers/bullets)
+          let cleanLine = line.replace(/^[\d\-\*\•]+\.?\s+/, '');
+          
+          // Add checkbox for actionable items
+          if (line.match(/^[\d\-\*\•]+\.?\s+/)) {
+            cleanLine = `<input type="checkbox" class="actionable-checkbox"> ${cleanLine}`;
+          }
+          
+          if (line.startsWith('#')) {
+            currentItem = `<strong>${line.replace(/^#+\s*/, '')}</strong>`;
+            Logger.debug('UI', `Added heading: ${line.replace(/^#+\s*/, '')}`);
+          } else {
+            currentItem = cleanLine;
+          }
+        } else {
+          // Continue the current item
+          if (currentItem) {
+            currentItem += '<br>' + line;
+          } else {
+            currentItem = line;
+          }
+        }
+      });
+
+      // Add the last item if there is one
+      if (currentItem) {
+        html += `<div class="actionable-item">${currentItem}</div>`;
+        itemCount++;
+        Logger.debug('UI', `Added final actionable item #${itemCount}`);
+      }
+
+      Logger.info('UI', `Formatted ${itemCount} actionable items`);
+      return html || "<div class='error-message'>No actionable items found</div>";
+    }
+  </script>
+</body>
+</html>
+
+

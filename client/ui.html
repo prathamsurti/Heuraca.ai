@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Figma Element Inspector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background-color: #f5f5f5;
+    }
+    
+    h2 {
+      color: #333;
+      margin-top: 0;
+    }
+    
+    button {
+      background-color: #0d99ff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      margin-right: 8px;
+      margin-bottom: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    button:hover {
+      background-color: #0077cc;
+    }
+    
+    #results {
+      background-color: white;
+      padding: 16px;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-top: 16px;
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      background-color: #f1f1f1;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      margin-right: 4px;
+      border-radius: 4px 4px 0 0;
+    }
+    
+    .tab.active {
+      background-color: white;
+      border-bottom: 1px solid white;
+      margin-bottom: -1px;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 16px;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-top: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    pre {
+      background-color: #f8f8f8;
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    
+    /* Styling for structured actionables */
+    .actionable-item {
+      margin-bottom: 16px;
+      padding: 12px;
+      background-color: #f9f9f9;
+      border-left: 4px solid #0d99ff;
+      border-radius: 0 4px 4px 0;
+    }
+    
+    .actionable-item h4 {
+      margin-top: 0;
+      color: #0d99ff;
+    }
+    
+    .actionable-list {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    
+    .actionable-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: flex-start;
+    }
+    
+    .actionable-list li:last-child {
+      border-bottom: none;
+    }
+    
+    .actionable-list li:before {
+      content: "•";
+      color: #0d99ff;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    
+    .analysis-content {
+      line-height: 1.6;
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100px;
+    }
+    
+    .loading:after {
+      content: " ";
+      display: block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 6px solid #0d99ff;
+      border-color: #0d99ff transparent #0d99ff transparent;
+      animation: loading 1.2s linear infinite;
+    }
+    
+    @keyframes loading {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>Figma Element Inspector</h2>
+
+  <button id="inspect-elements">Inspect Elements</button>
+  <button id="generate-analysis">Generate Analysis</button>
+  <button id="generate-actionables">Generate Actionables</button>
+  <button id="cancel">Done</button>
+
+  <div id="element-info"></div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="analysis">Analysis</div>
+    <div class="tab" data-tab="actionables">Actionables</div>
+  </div>
+
+  <div id="analysis-tab" class="tab-content active">
+    <h3>Analysis Results</h3>
+    <div id="analysis-results">No analysis generated yet. Click "Generate Analysis" to start.</div>
+  </div>
+
+  <div id="actionables-tab" class="tab-content">
+    <h3>Actionable Items</h3>
+    <div id="actionable-results">No actionables generated yet. Click "Generate Actionables" to start.</div>
+  </div>
+
+  <script>
+    // Tab functionality
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs and tab contents
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked tab
+        tab.classList.add('active');
+        
+        // Show corresponding tab content
+        const tabName = tab.getAttribute('data-tab');
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+      });
+    });
+
+    // Inspect Elements button
+    document.getElementById("inspect-elements").onclick = () => {
+      parent.postMessage({ pluginMessage: { type: "count-elements" } }, "*");
+      document.getElementById("element-info").innerHTML = "Analyzing selected elements...";
+    };
+
+    // Generate Analysis button
+    document.getElementById("generate-analysis").onclick = () => {
+      parent.postMessage({ pluginMessage: { type: "generate-analysis" } }, "*");
+      
+      if (!window.elementData) {
+        document.getElementById("analysis-results").innerHTML = "<p>No data to analyze. Please inspect elements first.</p>";
+        return;
+      }
+      
+      // Switch to Analysis tab
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector('.tab[data-tab="analysis"]').classList.add('active');
+      document.getElementById('analysis-tab').classList.add('active');
+      
+      readFromApi('generate-recommendations', { elements: window.elementData }, 'analysis');
+    };
+
+    // Generate Actionables button
+    document.getElementById("generate-actionables").onclick = () => {
+      parent.postMessage({ pluginMessage: { type: "generate-actionables" } }, "*");
+      
+      if (!window.elementData) {
+        document.getElementById("actionable-results").innerHTML = "<p>No data to analyze. Please inspect elements first.</p>";
+        return;
+      }
+      
+      // Switch to Actionables tab
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector('.tab[data-tab="actionables"]').classList.add('active');
+      document.getElementById('actionables-tab').classList.add('active');
+      
+      readFromApi('generate-actionables', { elements: window.elementData }, 'actionables');
+    };
+
+    // Cancel button
+    document.getElementById("cancel").onclick = () => {
+      parent.postMessage({ pluginMessage: { type: "cancel" } }, "*");
+    };
+
+    // Function to read from API
+    function readFromApi(endpoint, data, resultType) {
+      const baseUrl = "http://127.0.0.1:8000";
+      const apiUrl = `${baseUrl}/${endpoint}`;
+      
+      // Determine which tab is active to update the correct content area
+      const resultElement = resultType === 'analysis' ? 
+        document.getElementById("analysis-results") : 
+        document.getElementById("actionable-results");
+      
+      resultElement.innerHTML = `<div class="loading"></div>`;
+
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data || {})
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(result => {
+        if (resultType === 'analysis') {
+          displayAnalysis(result, resultElement);
+        } else {
+          displayActionables(result, resultElement);
+        }
+      })
+      .catch(error => {
+        resultElement.innerHTML = `<p>Error: ${error.message}</p>`;
+      });
+    }
+
+    // Function to display analysis results
+    function displayAnalysis(result, element) {
+      if (result.status === 'success' && result.recommendations) {
+        element.innerHTML = `
+          <div class="analysis-content">
+            ${formatText(result.recommendations)}
+          </div>
+          <details>
+            <summary>View Raw JSON</summary>
+            <pre>${JSON.stringify(result, null, 2)}</pre>
+          </details>
+        `;
+      } else {
+        element.innerHTML = `
+          <p>No analysis data available or an error occurred.</p>
+          <pre>${JSON.stringify(result, null, 2)}</pre>
+        `;
+      }
+    }
+
+    // Function to display actionable items in a structured way
+    function displayActionables(result, element) {
+      if (result.status === 'success' && result.actionables) {
+        // Parse the actionables text to extract structured items
+        const structuredActionables = parseActionables(result.actionables);
+        
+        let html = '<div class="actionable-container">';
+        
+        // If we successfully parsed structured items
+        if (structuredActionables.length > 0) {
+          structuredActionables.forEach((category, index) => {
+            html += `
+              <div class="actionable-item">
+                <h4>${category.title || `Actionable Group ${index + 1}`}</h4>
+                <ul class="actionable-list">
+                  ${category.items.map(item => `<li>${item}</li>`).join('')}
+                </ul>
+              </div>
+            `;
+          });
+        } else {
+          // If parsing failed, just format the text
+          html += `<div class="actionable-item">
+            <div>${formatText(result.actionables)}</div>
+          </div>`;
+        }
+        
+        html += `
+          </div>
+          <details>
+            <summary>View Raw JSON</summary>
+            <pre>${JSON.stringify(result, null, 2)}</pre>
+          </details>
+        `;
+        
+        element.innerHTML = html;
+      } else {
+        element.innerHTML = `
+          <p>No actionable items available or an error occurred.</p>
+          <pre>${JSON.stringify(result, null, 2)}</pre>
+        `;
+      }
+    }
+
+    // Function to parse actionables text into structured format
+    function parseActionables(text) {
+      const categories = [];
+      let currentCategory = null;
+      
+      // Split by lines
+      const lines = text.split('\n');
+      
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        
+        // Check if this is a heading (category)
+        if (line.startsWith('#') || /^[A-Z][A-Za-z\s]+:/.test(line)) {
+          // New category found
+          currentCategory = {
+            title: line.replace(/^#+\s*/, '').replace(/:$/, ''),
+            items: []
+          };
+          categories.push(currentCategory);
+        } 
+        // Check if this is a list item
+        else if (line.match(/^[\d\-\*\•]+\.?\s+/) || (currentCategory && currentCategory.items.length > 0)) {
+          // Clean up the line
+          const cleanLine = line.replace(/^[\d\-\*\•]+\.?\s+/, '');
+          
+          // If we don't have a category yet, create a default one
+          if (!currentCategory) {
+            currentCategory = {
+              title: "Actionable Items",
+              items: []
+            };
+            categories.push(currentCategory);
+          }
+          
+          currentCategory.items.push(cleanLine);
+        } else if (categories.length === 0) {
+          // If we haven't found any categories yet, create a default one
+          currentCategory = {
+            title: "Actionable Items",
+            items: [line]
+          };
+          categories.push(currentCategory);
+        } else if (currentCategory) {
+          // If it's not a new category or list item, append to the last item
+          if (currentCategory.items.length > 0) {
+            currentCategory.items[currentCategory.items.length - 1] += " " + line;
+          } else {
+            currentCategory.items.push(line);
+          }
+        }
+      }
+      
+      return categories;
+    }
+
+    // Function to format text with paragraphs
+    function formatText(text) {
+      if (!text) return '';
+      
+      // Replace newlines with paragraph breaks
+      return text.split('\n\n')
+        .map(para => para.trim())
+        .filter(para => para.length > 0)
+        .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+        .join('');
+    }
+
+    // Handle messages from the plugin
+    window.onmessage = (event) => {
+      const message = event.data.pluginMessage;
+
+      if (message.type === 'element-data') {
+        const elements = message.elements;
+        
+        // Store data for API sending
+        window.elementData = elements;
+
+        if (elements.length === 0) {
+          document.getElementById("element-info").innerHTML = "<p>No elements selected.</p>";
+          return;
+        }
+
+        let html = `<h3>Selected Elements: ${elements.length}</h3>`;
+        
+        // Display basic info about selected elements
+        elements.forEach((element, index) => {
+          html += `<p><strong>Element ${index + 1}:</strong> ${element.type} - ${element.name || 'Unnamed'}</p>`;
+        });
+
+        document.getElementById("element-info").innerHTML = html;
+        
+        // Send data to audit-data endpoint
+        const apiUrl = 'http://127.0.0.1:8000/audit-data';
+        
+        fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ elements: window.elementData })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(result => {
+          document.getElementById("element-info").innerHTML += "<p>Data sent successfully for audit!</p>";
+        })
+        .catch(error => {
+          document.getElementById("element-info").innerHTML += `<p>Error: ${error.message}</p>`;
+        });
+      }
+    };
+
+    function displayNode(node) {
+      let html = `<div>
+        <p><b>${node.type}: ${node.name || 'Unnamed'}</b></p>
+        <p>ID: ${node.id}</p>`;
+
+      if (node.text) {
+        html += `<p>Text: "${node.text.content}"</p>`;
+      }
+
+      if (node.children && node.children.length > 0) {
+        html += `<p>Children: ${node.children.length}</p>`;
+        html += '<div style="margin-left: 20px;">';
+        node.children.forEach(child => {
+          html += displayNode(child);
+        });
+        html += '</div>';
+      }
+
+      html += '</div>';
+      return html;
+    }
+  </script>
+</body>
+</html>
+

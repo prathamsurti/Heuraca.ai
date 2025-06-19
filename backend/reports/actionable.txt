@@ -1,0 +1,15 @@
+1. Add alternative text to "material-symbols:search" icon. 
+2. Add alternative text to elements with `type`: 'IMAGE'. 
+3. Verify color contrast ratio for text color (`r`: 0, `g`: 0, `b`: 0) and background (`r`: 0.8509804010391235, `g`: 0.8509804010391235, `b`: 0.8509804010391235).
+4. Fix `fillsError` for "Source: India Today".
+5. Fix `fillsError` for "Tonality: Positive".
+6. Fix `fillsError` for elements with IDs "318:81", "318:86", "318:92", "318:93".
+7. Ensure "Search" button is keyboard navigable.
+8. Ensure dropdowns indicated by "teenyicons:down-outline" are keyboard navigable.
+9. Increase target size for interactive elements like "Search" button and dropdowns if they're too small.
+10. Implement input validation for search input field.
+11. Add error handling mechanism for search input field.
+12. Provide visible help or documentation within the design.
+13. Rename layer "Group 8" to a more descriptive name.
+14. Rename layer "Rectangle 17" to a more descriptive name.
+15. Rename layer "Group 9" to a more descriptive name.
