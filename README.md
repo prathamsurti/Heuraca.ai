@@ -1,7 +1,5 @@
 # Heuraca.ai
 
-# Heuraca.ai
-
 **Heuraca.ai** is an open-source project aiming to leverage Artificial Intelligence and heuristic algorithms to solve complex problems. The repository primarily contains code in HTML, Python, JavaScript, TypeScript, and uses Mermaid for diagrams and documentation.
 
 > **Note:** This is a template README. Please update the sections below with project-specific details as your project evolves.
